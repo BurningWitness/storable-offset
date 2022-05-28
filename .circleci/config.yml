@@ -1,0 +1,45 @@
+version: 2.1
+
+jobs:
+  build-linux:
+    parameters:
+      version:
+        type: string
+    docker:
+      - image: haskell:<< parameters.version >>
+    steps:
+      - checkout
+      - restore_cache:
+          name: Restore
+          key: cache-<< parameters.version >>-{{ checksum "storable-offset.cabal" }}
+      - run:
+          name: Update Dependencies
+          command: |
+            cabal new-update && if [[ $(cabal --numeric-version) == '2.2.0.0' ]];
+                                  then cabal new-install
+                                  else cabal new-install --lib
+                                fi
+      - run:
+          name: Build
+          command: cabal new-build
+      - save_cache:
+          name: Cache
+          key: cache-<< parameters.version >>-{{ checksum "storable-offset.cabal" }}
+          paths:
+            - "/root/.cabal"
+            - "dist-newstyle"
+
+
+
+workflows:
+  workflow:
+    jobs:
+      - build-linux:
+          name: linux-8.2.2
+          version: 8.2.2
+      - build-linux:
+          name: linux-8.8.4
+          version: 8.8.4
+      - build-linux:
+          name: linux-9.2.2
+          version: 9.2.2-slim
